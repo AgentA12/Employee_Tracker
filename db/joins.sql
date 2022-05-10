@@ -1,11 +1,26 @@
+-- SELECT
+--     role.id,
+--     role.title,
+--     role.salary,
+--     departments.name
+-- FROM
+--     role
+--     LEFT JOIN departments ON role.department_id = departments.id;
 SELECT
-    employee.id,
+    employee.id AS employeeID,
     employee.first_name,
     employee.last_name,
-    employee.role_id,
-    role.id,
     role.title,
-    role.salary
+    role.salary,
+    departments.name AS department
 FROM
     employee
-    LEFT JOIN role ON role.id = employee.role_id;
+    LEFT JOIN role ON employee.role_id = role.id
+    LEFT JOIN departments ON departments.id = role.department_id;
+
+SELECT
+    employee.first_name,
+    manager.first_name
+FROM
+    employee
+    LEFT JOIN employee AS manager ON employee.manager_id = manager.id

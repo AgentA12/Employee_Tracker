@@ -26,10 +26,12 @@ function promptUser() {
           "Add a role",
           "Add an employee",
           "Update an employee role",
+          "EXIT",
         ],
       },
     ])
     .then((answer) => {
+      if (answer.Choice === "EXIT") console.log("Bye!");
       getAction(answer.Choice);
     });
 }
@@ -44,21 +46,41 @@ function getAction(action) {
 
 function ViewData(params) {
   if (params === "View all departments") {
-    db.query(`SELECT * FROM departments`, (err, results) => {});
+    db.query(`SELECT * FROM departments`, (err, results) => {
+      console.table("Departments", results);
+      promptUser();
+    });
   } else if (params === "View all employees") {
-    db.query(`SELECT * FROM employee`, (err, results) => {});
-  } else db.query(`SELECT * FROM role`, (err, results) => {});
+    db.query(`SELECT * FROM employee`, (err, results) => {
+      console.table("Employees", results);
+      promptUser();
+    });
+  } else
+    db.query(
+      `SELECT
+    role.id,
+    role.title,
+    role.salary,
+    departments.name
+FROM
+    role
+    LEFT JOIN departments ON role.department_id = departments.id;`,
+      (err, results) => {
+        console.table(`Roles`, results);
+        promptUser();
+      }
+    );
 }
 
 function AddData(params) {
   if (params === "Add a department") {
-    adddepartment();
+    addDepartment();
   } else if (params === "Add a role") {
     addRole();
   } else addEmployee();
 }
 
-function adddepartment() {
+function addDepartment() {
   inquirer
     .prompt([
       {
