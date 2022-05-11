@@ -33,9 +33,10 @@
 --     name
 -- FROM
 --     departments;
-SELECT
-    *
-FROM
-    departments
-WHERE
-    departments.name = ?;
+-- SELECT
+--     *
+-- FROM
+--     departments
+-- WHERE
+--     departments.name = ?;
+

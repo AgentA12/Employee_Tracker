@@ -105,7 +105,6 @@ function addDepartment() {
       },
     ])
     .then((res) => {
-      console.log(res.addDepartment);
       let sql = `INSERT INTO departments (name) VALUES (?);`;
       let params = [res.addDepartment];
       db.query(sql, params, (err, results) => {
@@ -144,15 +143,13 @@ function addRole() {
         },
       ])
       .then((res) => {
-        console.log(res);
-        let sql = `SELECT  * FROM departments WHERE  departments.name = ?;`;
+        let sql = `SELECT * FROM departments WHERE  departments.name = ?;`;
         let params = res.roleDepartment;
         db.query(sql, params, (err, results) => {
           if (err) {
             console.log(err);
             promptUser();
           }
-          console.log(results[0].id);
 
           let sql = `INSERT INTO role (title, salary, department_id)
           VALUES (?,?,?);`;
@@ -160,13 +157,12 @@ function addRole() {
           let params = Object.values(res);
           params.pop();
           params.push(results[0].id);
-          console.log(params);
+
           db.query(sql, params, (err, results) => {
             if (err) {
               throw err;
               promptUser();
             }
-            console.log(results);
           });
           promptUser();
         });
@@ -175,8 +171,9 @@ function addRole() {
 }
 
 function addEmployee() {
-  getRoleChoices().then((data) => {
-    console.log(data);
+  getRoleChoices.then((data) => {
+    console.log(data.role);
+    console.log(data.managers);
     inquirer
       .prompt([
         {
@@ -190,26 +187,48 @@ function addEmployee() {
           message: "Enter the last name of the employee:",
         },
         {
-          type: "input",
+          type: "list",
           name: "employeeRole",
           message: "Enter the role of the employee:",
+          choices: data.roles,
         },
         {
-          type: "input",
+          type: "list",
           name: "employeeManager",
           message: "Enter the manager of the employee:",
+          choices: data.managers,
         },
       ])
       .then((res) => {
         console.log(res);
+        db.query(`INSERT INTO employee (first_name, last_name, role_id)`);
         promptUser();
       });
   });
 }
 
-function UpdateEmpoyee() {}
-
-promptUser();
+function UpdateEmpoyee() {
+  getRoleChoicesUpdate.then((data) => {
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "chooseEmployee",
+          message: "Which employee would you like to update?",
+          choices: data.employees,
+        },
+        {
+          type: "list",
+          name: "updateRole",
+          message: "choose you role",
+          choices: data.roles,
+        },
+      ])
+      .then((input) => {
+        getIds(input);
+      });
+  });
+}
 
 let queryPromise = new Promise((resolve, reject) => {
   let sql = `SELECT name
@@ -225,3 +244,110 @@ let queryPromise = new Promise((resolve, reject) => {
     resolve(data);
   });
 });
+
+let getRoleChoices = new Promise((resolve, reject) => {
+  let data = {
+    roles: [],
+    managers: [],
+  };
+  let sql = `SELECT title from role`;
+  db.query(sql, (err, results) => {
+    results.forEach((element) => {
+      for (key in element) {
+        data.roles.push(element[key]);
+      }
+    });
+  });
+  sql = `SELECT
+        CONCAT(employee.first_name, ' ', employee.last_name) fullname
+        FROM
+        employee
+        where
+        manager_id is null;`;
+  db.query(sql, (err, results) => {
+    results.forEach((element) => {
+      for (key in element) {
+        data.managers.push(element[key]);
+      }
+    });
+    resolve(data);
+  });
+});
+
+promptUser();
+
+let getRoleChoicesUpdate = new Promise((resolve, reject) => {
+  let data = {
+    roles: [],
+    employees: [],
+  };
+  let sql = `SELECT title from role`;
+  db.query(sql, (err, results) => {
+    results.forEach((element) => {
+      for (key in element) {
+        data.roles.push(element[key]);
+      }
+    });
+  });
+  sql = `SELECT
+        CONCAT(employee.first_name, ' ', employee.last_name) fullname
+        FROM
+        employee;`;
+  db.query(sql, (err, results) => {
+    results.forEach((element) => {
+      for (key in element) {
+        data.employees.push(element[key]);
+      }
+    });
+    resolve(data);
+  });
+});
+
+function getIds(input) {
+  let sql = `select
+  id
+from
+  employee
+where
+  CONCAT(first_name, " ", last_name) = ?;`;
+  let params = Object.values(input);
+  db.query(sql, params[0], (err, results) => {
+    console.log(results[0].id);
+    let ids = [];
+    ids.push(results[0].id);
+    let sql = `select
+   id
+from
+   role
+where
+   role.title = ?;`;
+    let params = Object.values(input);
+    console.log(params[1]);
+    db.query(sql, params[1], (err, results) => {
+      console.log(results.id);
+      ids.push(results[0].id);
+      console.log(ids);
+
+      let sql = `update employee
+      set role_id = ? 
+      where employee.id = ?`;
+      params = ids.reverse();
+      console.log(params);
+      db.query(sql, params, (err, results) => {
+        console.table(results);
+      });
+    });
+  });
+}
+
+// let sql = `SELECT
+//       CONCAT(employee.first_name, ' ', employee.last_name) fullname
+//   FROM
+//       employee
+//   where
+//       where employee.fullname = ?;`;
+// let params = [input.chooseEmployee, results.id];
+
+// db.query(sql, params, (err, results) => {
+//   console.table(results);
+// });

@@ -27,3 +27,35 @@ DESCRIBE departments;
 DESCRIBE role;
 
 DESCRIBE employee;
+
+SELECT
+    title
+from
+    role
+select
+    *
+from
+    employee
+where
+    manager_id is null;
+
+select
+    id
+from
+    employee
+where
+    CONCAT(first_name, " ", last_name) = ?;
+
+select
+    id
+from
+    role
+where
+    role.title = ?;
+
+update
+    employee
+set
+    role_id = 1
+where
+    employee.id = 1;
