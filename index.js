@@ -51,17 +51,32 @@ function ViewData(params) {
       promptUser();
     });
   } else if (params === "View all employees") {
-    db.query(`SELECT * FROM employee`, (err, results) => {
-      console.table("Employees", results);
-      promptUser();
-    });
+    db.query(
+      `SELECT
+    employee.id AS employeeID,
+    employee.first_name,
+    employee.last_name,
+    role.title,
+    role.salary,
+    CONCAT(manager.first_name, ' ', manager.last_name) AS manager,
+    departments.name AS department
+FROM
+    employee
+    LEFT JOIN role ON employee.role_id = role.id
+    LEFT JOIN departments ON departments.id = role.department_id
+    LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`,
+      (err, results) => {
+        console.table("Employees", results);
+        promptUser();
+      }
+    );
   } else
     db.query(
       `SELECT
     role.id,
     role.title,
     role.salary,
-    departments.name
+    departments.name AS department
 FROM
     role
     LEFT JOIN departments ON role.department_id = departments.id;`,
@@ -90,66 +105,123 @@ function addDepartment() {
       },
     ])
     .then((res) => {
-      console.log(res);
+      console.log(res.addDepartment);
+      let sql = `INSERT INTO departments (name) VALUES (?);`;
+      let params = [res.addDepartment];
+      db.query(sql, params, (err, results) => {
+        if (err) {
+          console.log(err);
+          promptUser();
+        }
+        console.log(results);
+      });
       promptUser();
+    })
+    .then((data) => {
+      console.log();
     });
 }
 
 function addRole() {
-  inquirer
-    .prompt([
-      {
-        type: "input",
-        name: "roleName",
-        message: "Enter the name of the role:",
-      },
-      {
-        type: "input",
-        name: "roleSalary",
-        message: "Enter the salary of the role:",
-      },
-      {
-        type: "input",
-        name: "roleDepartment",
-        message: "Enter the department of the role:",
-      },
-    ])
-    .then((res) => {
-      console.log(res);
-      promptUser();
-    });
+  queryPromise.then((data) => {
+    inquirer
+      .prompt([
+        {
+          type: "input",
+          name: "roleName",
+          message: "Enter the name of the role:",
+        },
+        {
+          type: "input",
+          name: "roleSalary",
+          message: "Enter the salary of the role:",
+        },
+        {
+          type: "list",
+          name: "roleDepartment",
+          message: "Enter the department of the role:",
+          choices: data,
+        },
+      ])
+      .then((res) => {
+        console.log(res);
+        let sql = `SELECT  * FROM departments WHERE  departments.name = ?;`;
+        let params = res.roleDepartment;
+        db.query(sql, params, (err, results) => {
+          if (err) {
+            console.log(err);
+            promptUser();
+          }
+          console.log(results[0].id);
+
+          let sql = `INSERT INTO role (title, salary, department_id)
+          VALUES (?,?,?);`;
+
+          let params = Object.values(res);
+          params.pop();
+          params.push(results[0].id);
+          console.log(params);
+          db.query(sql, params, (err, results) => {
+            if (err) {
+              throw err;
+              promptUser();
+            }
+            console.log(results);
+          });
+          promptUser();
+        });
+      });
+  });
 }
 
 function addEmployee() {
-  inquirer
-    .prompt([
-      {
-        type: "input",
-        name: "employeeFirstName",
-        message: "Enter the first name of the employee:",
-      },
-      {
-        type: "input",
-        name: "employeeLastName",
-        message: "Enter the last name of the employee:",
-      },
-      {
-        type: "input",
-        name: "employeeRole",
-        message: "Enter the role of the employee:",
-      },
-      {
-        type: "input",
-        name: "employeeManager",
-        message: "Enter the manager of the employee:",
-      },
-    ])
-    .then((res) => {
-      console.log(res);
-      promptUser();
-    });
+  getRoleChoices().then((data) => {
+    console.log(data);
+    inquirer
+      .prompt([
+        {
+          type: "input",
+          name: "employeeFirstName",
+          message: "Enter the first name of the employee:",
+        },
+        {
+          type: "input",
+          name: "employeeLastName",
+          message: "Enter the last name of the employee:",
+        },
+        {
+          type: "input",
+          name: "employeeRole",
+          message: "Enter the role of the employee:",
+        },
+        {
+          type: "input",
+          name: "employeeManager",
+          message: "Enter the manager of the employee:",
+        },
+      ])
+      .then((res) => {
+        console.log(res);
+        promptUser();
+      });
+  });
 }
 
 function UpdateEmpoyee() {}
 
 promptUser();
+
+let queryPromise = new Promise((resolve, reject) => {
+  let sql = `SELECT name
+  FROM
+  departments;`;
+  db.query(sql, (err, results) => {
+    let data = [];
+    results.forEach((element) => {
+      for (key in element) {
+        data.push(element[key]);
+      }
+    });
+    resolve(data);
+  });
+});
