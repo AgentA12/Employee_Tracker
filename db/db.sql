@@ -4,13 +4,15 @@ CREATE DATABASE employee_tracker;
 
 USE employee_tracker;
 
+SHOW TABLES;
+
 -- select
 --     role.id
 -- from
 --     role
 -- where
 --     role.title = "Lead Engineer";
-update
-    employee
-set
-    role_id = ?
+-- update
+--     employee
+-- set
+--     role_id = ?

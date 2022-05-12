@@ -23,7 +23,6 @@ VALUES
     ("HR Director", 120000, 5),
     ("Recruiter", 70000, 5);
 
--- the constraint doesnt fail because of NULL! do more research into constraints and foreign keys.
 INSERT INTO
     employee (first_name, last_name, role_id, manager_id)
 VALUES
@@ -54,8 +53,14 @@ FROM
     role;
 
 SELECT
-    CONCAT(employee.first_name, ' ', employee.last_name) fullname
+    *
 FROM
-    employee
-where
-    where employee.fullname = ?;
+    employee;
+
+-- SELECT
+--     CONCAT(employee.first_name, ' ', employee.last_name) fullname
+-- FROM
+--     employee
+-- where
+-- where
+--     employee.fullname = ?;

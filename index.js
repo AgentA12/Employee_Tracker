@@ -172,8 +172,6 @@ function addRole() {
 
 function addEmployee() {
   getRoleChoices.then((data) => {
-    console.log(data.role);
-    console.log(data.managers);
     inquirer
       .prompt([
         {
@@ -200,9 +198,7 @@ function addEmployee() {
         },
       ])
       .then((res) => {
-        console.log(res);
-        db.query(`INSERT INTO employee (first_name, last_name, role_id)`);
-        promptUser();
+        getManagerId(res);
       });
   });
 }
@@ -274,8 +270,6 @@ let getRoleChoices = new Promise((resolve, reject) => {
   });
 });
 
-promptUser();
-
 let getRoleChoicesUpdate = new Promise((resolve, reject) => {
   let data = {
     roles: [],
@@ -335,11 +329,56 @@ where
       console.log(params);
       db.query(sql, params, (err, results) => {
         console.table(results);
+        promptUser();
       });
     });
   });
 }
 
+function getManagerId(input) {
+  let sql = `select
+  id
+from
+   employee
+where
+   CONCAT(first_name, " ", last_name) = ?;`;
+  let params = input.employeeManager;
+
+  db.query(sql, params, (err, results) => {
+    console.log(results[0].id);
+    let manager_id = results[0].id;
+
+    sql = `select
+    id
+ from
+    role
+ where
+    role.title = ?;`;
+    params = input.employeeRole;
+    db.query(sql, params, (err, results) => {
+      console.log(results);
+      let role_id = results[0].id;
+      sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
+      VALUES (?,?,?,?)
+            `;
+      params = [
+        input.employeeFirstName,
+        input.employeeLastName,
+        role_id,
+        manager_id,
+      ];
+      db.query(sql, params, (err, results) => {
+        if (err) {
+          console.log(err);
+        }
+        console.table(results);
+        promptUser();
+      });
+    });
+  });
+}
+
+promptUser();
 // let sql = `SELECT
 //       CONCAT(employee.first_name, ' ', employee.last_name) fullname
 //   FROM

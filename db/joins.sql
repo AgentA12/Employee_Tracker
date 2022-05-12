@@ -39,4 +39,9 @@
 --     departments
 -- WHERE
 --     departments.name = ?;
-
+select
+   id
+from
+    employee
+where
+    CONCAT(first_name, " ", last_name) = 'Anya Norton';
