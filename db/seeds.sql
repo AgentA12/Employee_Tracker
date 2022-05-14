@@ -56,11 +56,3 @@ SELECT
     *
 FROM
     employee;
-
--- SELECT
---     CONCAT(employee.first_name, ' ', employee.last_name) fullname
--- FROM
---     employee
--- where
--- where
---     employee.fullname = ?;

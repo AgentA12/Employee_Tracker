@@ -1,15 +1,15 @@
 const inquirer = require("inquirer");
 const ctable = require("console.table");
 const mysql = require("mysql2");
-
-const db = mysql.createConnection(
-  {
-    user: "root",
-    password: "andrew",
-    database: "employee_tracker",
-  },
-  console.log("jacked in!")
-);
+const { prompts } = require("inquirer");
+const db = require("./libs/connection");
+const Query = require("./libs/query-functions");
+const {
+  viewDepartments,
+  viewEmployees,
+  viewRoles,
+  department,
+} = require("./libs/queryStatements");
 
 function promptUser() {
   inquirer
@@ -31,7 +31,10 @@ function promptUser() {
       },
     ])
     .then((answer) => {
-      if (answer.Choice === "EXIT") console.log("Bye!");
+      if (answer.Choice === "EXIT") {
+        console.log("Bye!");
+        process.exit();
+      }
       getAction(answer.Choice);
     });
 }
@@ -46,83 +49,43 @@ function getAction(action) {
 
 function ViewData(params) {
   if (params === "View all departments") {
-    db.query(`SELECT * FROM departments`, (err, results) => {
-      console.table("Departments", results);
-      promptUser();
-    });
+    let query = { sql: viewDepartments };
+    Query(query).then(promptUser);
   } else if (params === "View all employees") {
-    db.query(
-      `SELECT
-    employee.id AS employeeID,
-    employee.first_name,
-    employee.last_name,
-    role.title,
-    role.salary,
-    CONCAT(manager.first_name, ' ', manager.last_name) AS manager,
-    departments.name AS department
-FROM
-    employee
-    LEFT JOIN role ON employee.role_id = role.id
-    LEFT JOIN departments ON departments.id = role.department_id
-    LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`,
-      (err, results) => {
-        console.table("Employees", results);
-        promptUser();
-      }
-    );
-  } else
-    db.query(
-      `SELECT
-    role.id,
-    role.title,
-    role.salary,
-    departments.name AS department
-FROM
-    role
-    LEFT JOIN departments ON role.department_id = departments.id;`,
-      (err, results) => {
-        console.table(`Roles`, results);
-        promptUser();
-      }
-    );
+    let query = { sql: viewEmployees };
+    Query(query).then(promptUser);
+  } else if (params === "View all roles") {
+    let query = { sql: viewRoles };
+    Query(query).then(promptUser);
+  }
 }
 
 function AddData(params) {
   if (params === "Add a department") {
-    addDepartment();
+    addDepartment().then((res) => {
+      let query = {
+        sql: department,
+        params: res.Department,
+      };
+      Query(query).then(promptUser);
+    });
   } else if (params === "Add a role") {
     addRole();
   } else addEmployee();
 }
 
 function addDepartment() {
-  inquirer
-    .prompt([
-      {
-        type: "input",
-        name: "addDepartment",
-        message: "Enter the name of the department:",
-      },
-    ])
-    .then((res) => {
-      let sql = `INSERT INTO departments (name) VALUES (?);`;
-      let params = [res.addDepartment];
-      db.query(sql, params, (err, results) => {
-        if (err) {
-          console.log(err);
-          promptUser();
-        }
-        console.log(results);
-      });
-      promptUser();
-    })
-    .then((data) => {
-      console.log();
-    });
+  return inquirer.prompt([
+    {
+      type: "input",
+      name: "Department",
+      message: "Enter the name of the department:",
+    },
+  ]);
 }
 
 function addRole() {
-  queryPromise.then((data) => {
+  getDepartmentNames.then((departmentNames) => {
     inquirer
       .prompt([
         {
@@ -139,7 +102,7 @@ function addRole() {
           type: "list",
           name: "roleDepartment",
           message: "Enter the department of the role:",
-          choices: data,
+          choices: departmentNames,
         },
       ])
       .then((res) => {
@@ -226,7 +189,7 @@ function UpdateEmpoyee() {
   });
 }
 
-let queryPromise = new Promise((resolve, reject) => {
+let getDepartmentNames = new Promise((resolve, reject) => {
   let sql = `SELECT name
   FROM
   departments;`;
@@ -379,14 +342,3 @@ where
 }
 
 promptUser();
-// let sql = `SELECT
-//       CONCAT(employee.first_name, ' ', employee.last_name) fullname
-//   FROM
-//       employee
-//   where
-//       where employee.fullname = ?;`;
-// let params = [input.chooseEmployee, results.id];
-
-// db.query(sql, params, (err, results) => {
-//   console.table(results);
-// });
