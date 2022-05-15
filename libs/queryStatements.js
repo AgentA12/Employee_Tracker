@@ -1,4 +1,5 @@
 const viewDepartments = `SELECT * FROM departments`;
+
 const viewEmployees = `SELECT
 employee.id AS employeeID,
 employee.first_name,
@@ -12,6 +13,7 @@ employee
 LEFT JOIN role ON employee.role_id = role.id
 LEFT JOIN departments ON departments.id = role.department_id
 LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`;
+
 const viewRoles = `SELECT
 role.id,
 role.title,
@@ -23,10 +25,18 @@ LEFT JOIN departments ON role.department_id = departments.id;`;
 
 const department = `INSERT INTO departments (name) VALUES (?);`;
 
+const departmentId = `SELECT * FROM departments WHERE  departments.name = ?;`;
+
+const insertNewRole = `INSERT INTO role (title, salary, department_id)
+VALUES (?,?,?);`;
+
+const departmentNamesSQL = `SELECT name FROM departments;`;
 module.exports = {
   viewDepartments,
   viewEmployees,
   viewRoles,
   department,
-  
+  departmentId,
+  insertNewRole,
+  departmentNamesSQL,
 };

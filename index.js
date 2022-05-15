@@ -3,12 +3,14 @@ const ctable = require("console.table");
 const mysql = require("mysql2");
 const { prompts } = require("inquirer");
 const db = require("./libs/connection");
-const Query = require("./libs/query-functions");
+const { Query, QueryReturnResults } = require("./libs/query-functions");
 const {
   viewDepartments,
   viewEmployees,
   viewRoles,
   department,
+  departmentId,
+  insertNewRole,
 } = require("./libs/queryStatements");
 
 function promptUser() {
@@ -49,32 +51,36 @@ function getAction(action) {
 
 function ViewData(params) {
   if (params === "View all departments") {
-    let query = { sql: viewDepartments };
-    Query(query).then(promptUser);
+    let queryObj = { sql: viewDepartments };
+    Query(queryObj).then(promptUser);
   } else if (params === "View all employees") {
-    let query = { sql: viewEmployees };
-    Query(query).then(promptUser);
+    let queryObj = { sql: viewEmployees };
+    Query(queryObj).then(promptUser);
   } else if (params === "View all roles") {
-    let query = { sql: viewRoles };
-    Query(query).then(promptUser);
+    let queryObj = { sql: viewRoles };
+    Query(queryObj).then(promptUser);
   }
 }
 
 function AddData(params) {
   if (params === "Add a department") {
-    addDepartment().then((res) => {
-      let query = {
+    getNewDepartmentName().then((res) => {
+      let queryObj = {
         sql: department,
         params: res.Department,
       };
-      Query(query).then(promptUser);
+      Query(queryObj).then(promptUser);
     });
   } else if (params === "Add a role") {
-    addRole();
+    getDepartmentNames.then((departmentNames) => {
+      promptNewRole(departmentNames).then((newRole) => {
+        addRole(newRole);
+      });
+    });
   } else addEmployee();
 }
 
-function addDepartment() {
+function getNewDepartmentName() {
   return inquirer.prompt([
     {
       type: "input",
@@ -84,52 +90,40 @@ function addDepartment() {
   ]);
 }
 
-function addRole() {
-  getDepartmentNames.then((departmentNames) => {
-    inquirer
-      .prompt([
-        {
-          type: "input",
-          name: "roleName",
-          message: "Enter the name of the role:",
-        },
-        {
-          type: "input",
-          name: "roleSalary",
-          message: "Enter the salary of the role:",
-        },
-        {
-          type: "list",
-          name: "roleDepartment",
-          message: "Enter the department of the role:",
-          choices: departmentNames,
-        },
-      ])
-      .then((res) => {
-        let sql = `SELECT * FROM departments WHERE  departments.name = ?;`;
-        let params = res.roleDepartment;
-        db.query(sql, params, (err, results) => {
-          if (err) {
-            console.log(err);
-            promptUser();
-          }
+function promptNewRole(departmentNames) {
+  return inquirer.prompt([
+    {
+      type: "input",
+      name: "roleName",
+      message: "Enter the name of the role:",
+    },
+    {
+      type: "input",
+      name: "roleSalary",
+      message: "Enter the salary of the role:",
+    },
+    {
+      type: "list",
+      name: "roleDepartment",
+      message: "Enter the department of the role:",
+      choices: departmentNames,
+    },
+  ]);
+}
 
-          let sql = `INSERT INTO role (title, salary, department_id)
-          VALUES (?,?,?);`;
-
-          let params = Object.values(res);
-          params.pop();
-          params.push(results[0].id);
-
-          db.query(sql, params, (err, results) => {
-            if (err) {
-              throw err;
-              promptUser();
-            }
-          });
-          promptUser();
-        });
-      });
+function addRole(newRole) {
+  return new Promise((resolve, reject) => {
+    let queryObj = {
+      sql: departmentId,
+      params: newRole.roleDepartment,
+    };
+    QueryReturnResults(queryObj).then((results) => {
+      let params = Object.values(newRole);
+      params.pop();
+      params.push(results[0].id);
+      let queryObj = { sql: insertNewRole, params };
+      Query(queryObj).then(promptUser);
+    });
   });
 }
 
