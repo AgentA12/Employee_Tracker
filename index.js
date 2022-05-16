@@ -11,7 +11,16 @@ const {
   department,
   departmentId,
   insertNewRole,
+  roleTitles,
+  employeeFullName,
+  selectEmployeeFullName,
+  selectRoleId,
+  insertNewEmployee,
+  employeeNames,
+  departmentNamesSQL,
+  updatedEmployeeRoles,
 } = require("./libs/queryStatements");
+const { query } = require("./libs/connection");
 
 function promptUser() {
   inquirer
@@ -46,7 +55,62 @@ function getAction(action) {
     ViewData(action);
   } else if (action.includes("Add")) {
     AddData(action);
-  } else UpdateEmpoyee(action);
+  } else {
+    getRoleTitles.then((roles) => {
+      getEmployeeNames.then((employees) => {
+        let employeesNames = filterResults(employees);
+        promptUpdateEmployee(roles, employeesNames).then((updatedEmployee) => {
+          getEmployeeID(updatedEmployee).then((employeeId) => {
+            getRoleId(updatedEmployee).then((roleId) =>
+              updatedEmployeeRole(roleId, employeeId)
+            );
+          });
+        });
+      });
+    });
+  }
+  //UpdateEmployee(action);
+}
+
+function updatedEmployeeRole(roleId, employeeId) {
+  let query = {
+    sql: updatedEmployeeRoles,
+    params: [roleId, employeeId],
+  };
+
+  Query(query).then((results) => {
+    console.table(results);
+    promptUser();
+  });
+}
+
+function getEmployeeID(input) {
+  return new Promise((resolve, reject) => {
+    let query = {
+      sql: selectEmployeeFullName,
+      params: Object.values(input),
+    };
+    QueryReturnResults(query).then((results) => {
+      resolve(results[0].id);
+    });
+  });
+}
+
+function promptUpdateEmployee(roles, employees) {
+  return inquirer.prompt([
+    {
+      type: "list",
+      name: "chooseEmployee",
+      message: "Which employee would you like to update?",
+      choices: employees,
+    },
+    {
+      type: "list",
+      name: "employeeRole",
+      message: "choose the new role",
+      choices: roles,
+    },
+  ]);
 }
 
 function ViewData(params) {
@@ -77,8 +141,56 @@ function AddData(params) {
         addRole(newRole);
       });
     });
-  } else addEmployee();
+  } else {
+    //else "Add an employee"
+    getManagerNames.then((managerNames) => {
+      getRoleTitles.then((roles) => {
+        promptNewEmployee(roles, managerNames).then((newEmployee) => {
+          getManagerId(newEmployee).then((managerId) => {
+            getRoleId(newEmployee).then((roleId) => {
+              addNewEmployee(newEmployee, roleId, managerId);
+            });
+          });
+        });
+      });
+    });
+  }
 }
+
+let getRoleTitles = new Promise((resolve, reject) => {
+  let query = { sql: roleTitles };
+  QueryReturnResults(query).then((results) => {
+    let roles = filterResults(results);
+    resolve(roles);
+  });
+});
+
+function filterResults(results) {
+  let data = [];
+  results.forEach((element) => {
+    for (key in element) {
+      data.push(element[key]);
+    }
+  });
+  return data;
+}
+
+let getEmployeeNames = new Promise((resolve, reject) => {
+  let query = {
+    sql: employeeNames,
+  };
+  QueryReturnResults(query).then((results) => {
+    resolve(results);
+  });
+});
+
+let getManagerNames = new Promise((resolve, reject) => {
+  let query = { sql: employeeFullName };
+  QueryReturnResults(query).then((results) => {
+    let managers = filterResults(results);
+    resolve(managers);
+  });
+});
 
 function getNewDepartmentName() {
   return inquirer.prompt([
@@ -127,211 +239,81 @@ function addRole(newRole) {
   });
 }
 
-function addEmployee() {
-  getRoleChoices.then((data) => {
-    inquirer
-      .prompt([
-        {
-          type: "input",
-          name: "employeeFirstName",
-          message: "Enter the first name of the employee:",
-        },
-        {
-          type: "input",
-          name: "employeeLastName",
-          message: "Enter the last name of the employee:",
-        },
-        {
-          type: "list",
-          name: "employeeRole",
-          message: "Enter the role of the employee:",
-          choices: data.roles,
-        },
-        {
-          type: "list",
-          name: "employeeManager",
-          message: "Enter the manager of the employee:",
-          choices: data.managers,
-        },
-      ])
-      .then((res) => {
-        getManagerId(res);
-      });
-  });
-}
-
-function UpdateEmpoyee() {
-  getRoleChoicesUpdate.then((data) => {
-    inquirer
-      .prompt([
-        {
-          type: "list",
-          name: "chooseEmployee",
-          message: "Which employee would you like to update?",
-          choices: data.employees,
-        },
-        {
-          type: "list",
-          name: "updateRole",
-          message: "choose you role",
-          choices: data.roles,
-        },
-      ])
-      .then((input) => {
-        getIds(input);
-      });
-  });
+function promptNewEmployee(roles, managers) {
+  return inquirer.prompt([
+    {
+      type: "input",
+      name: "employeeFirstName",
+      message: "Enter the first name of the employee:",
+    },
+    {
+      type: "input",
+      name: "employeeLastName",
+      message: "Enter the last name of the employee:",
+    },
+    {
+      type: "list",
+      name: "employeeRole",
+      message: "Enter the role of the employee:",
+      choices: roles,
+    },
+    {
+      type: "list",
+      name: "employeeManager",
+      message: "Enter the manager of the employee:",
+      choices: managers,
+    },
+  ]);
 }
 
 let getDepartmentNames = new Promise((resolve, reject) => {
-  let sql = `SELECT name
-  FROM
-  departments;`;
-  db.query(sql, (err, results) => {
-    let data = [];
-    results.forEach((element) => {
-      for (key in element) {
-        data.push(element[key]);
-      }
-    });
-    resolve(data);
+  let query = { sql: departmentNamesSQL };
+  QueryReturnResults(query).then((results) => {
+    let departmentNames = filterResults(results);
+    resolve(results);
   });
 });
 
-let getRoleChoices = new Promise((resolve, reject) => {
-  let data = {
-    roles: [],
-    managers: [],
-  };
-  let sql = `SELECT title from role`;
-  db.query(sql, (err, results) => {
-    results.forEach((element) => {
-      for (key in element) {
-        data.roles.push(element[key]);
-      }
-    });
-  });
-  sql = `SELECT
-        CONCAT(employee.first_name, ' ', employee.last_name) fullname
-        FROM
-        employee
-        where
-        manager_id is null;`;
-  db.query(sql, (err, results) => {
-    results.forEach((element) => {
-      for (key in element) {
-        data.managers.push(element[key]);
-      }
-    });
-    resolve(data);
-  });
-});
-
-let getRoleChoicesUpdate = new Promise((resolve, reject) => {
-  let data = {
-    roles: [],
-    employees: [],
-  };
-  let sql = `SELECT title from role`;
-  db.query(sql, (err, results) => {
-    results.forEach((element) => {
-      for (key in element) {
-        data.roles.push(element[key]);
-      }
-    });
-  });
-  sql = `SELECT
-        CONCAT(employee.first_name, ' ', employee.last_name) fullname
-        FROM
-        employee;`;
-  db.query(sql, (err, results) => {
-    results.forEach((element) => {
-      for (key in element) {
-        data.employees.push(element[key]);
-      }
-    });
-    resolve(data);
-  });
-});
-
-function getIds(input) {
-  let sql = `select
-  id
-from
-  employee
-where
-  CONCAT(first_name, " ", last_name) = ?;`;
-  let params = Object.values(input);
-  db.query(sql, params[0], (err, results) => {
-    console.log(results[0].id);
-    let ids = [];
-    ids.push(results[0].id);
-    let sql = `select
-   id
-from
-   role
-where
-   role.title = ?;`;
-    let params = Object.values(input);
-    console.log(params[1]);
-    db.query(sql, params[1], (err, results) => {
-      console.log(results.id);
-      ids.push(results[0].id);
-      console.log(ids);
-
-      let sql = `update employee
-      set role_id = ? 
-      where employee.id = ?`;
-      params = ids.reverse();
-      console.log(params);
-      db.query(sql, params, (err, results) => {
-        console.table(results);
-        promptUser();
-      });
+function getManagerId(input) {
+  return new Promise((resolve, reject) => {
+    let query = {
+      sql: selectEmployeeFullName,
+      params: input.employeeManager,
+    };
+    QueryReturnResults(query).then((results) => {
+      let manager_id = results[0].id;
+      resolve(manager_id);
     });
   });
 }
 
-function getManagerId(input) {
-  let sql = `select
-  id
-from
-   employee
-where
-   CONCAT(first_name, " ", last_name) = ?;`;
-  let params = input.employeeManager;
-
-  db.query(sql, params, (err, results) => {
-    console.log(results[0].id);
-    let manager_id = results[0].id;
-
-    sql = `select
-    id
- from
-    role
- where
-    role.title = ?;`;
-    params = input.employeeRole;
-    db.query(sql, params, (err, results) => {
-      console.log(results);
+function getRoleId(input) {
+  return new Promise((resolve, reject) => {
+    let query = {
+      sql: selectRoleId,
+      params: input.employeeRole,
+    };
+    QueryReturnResults(query).then((results) => {
       let role_id = results[0].id;
-      sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
-      VALUES (?,?,?,?)
-            `;
-      params = [
-        input.employeeFirstName,
-        input.employeeLastName,
-        role_id,
-        manager_id,
-      ];
-      db.query(sql, params, (err, results) => {
-        if (err) {
-          console.log(err);
-        }
-        console.table(results);
-        promptUser();
-      });
+      resolve(role_id);
     });
+  });
+}
+
+function addNewEmployee(...args) {
+  let query = {
+    sql: insertNewEmployee,
+    params: [
+      args[0].employeeFirstName,
+      args[0].employeeLastName,
+      args[1],
+      args[2],
+    ],
+  };
+
+  Query(query).then((results) => {
+    console.table(results);
+    promptUser();
   });
 }
 

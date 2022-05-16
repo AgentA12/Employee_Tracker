@@ -31,6 +31,41 @@ const insertNewRole = `INSERT INTO role (title, salary, department_id)
 VALUES (?,?,?);`;
 
 const departmentNamesSQL = `SELECT name FROM departments;`;
+
+const roleTitles = `SELECT title from role`;
+const employeeFullName = `SELECT
+CONCAT(employee.first_name, ' ', employee.last_name) fullname
+FROM
+employee
+where
+manager_id is null;`;
+
+const selectEmployeeFullName = `select
+id
+from
+ employee
+where
+ CONCAT(first_name, " ", last_name) = ?;`;
+
+const selectRoleId = `select
+id
+from
+role
+where
+role.title = ?;`;
+
+const insertNewEmployee = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
+         VALUES (?,?,?,?);`;
+
+const employeeNames = `SELECT
+CONCAT(employee.first_name, ' ', employee.last_name) fullname
+FROM
+employee;`;
+
+const updatedEmployeeRoles = `update employee
+set role_id = ? 
+where employee.id = ?`
+
 module.exports = {
   viewDepartments,
   viewEmployees,
@@ -39,4 +74,11 @@ module.exports = {
   departmentId,
   insertNewRole,
   departmentNamesSQL,
+  roleTitles,
+  employeeFullName,
+  selectEmployeeFullName,
+  selectRoleId,
+  insertNewEmployee,
+  employeeNames,
+  updatedEmployeeRoles
 };
