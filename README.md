@@ -16,9 +16,14 @@ This application is a cli app that takes a series of prompts from a user and mak
 
 ##  Usage 
 
-Using git, clone the repository with ```git clone <respository code>```
-Install the npm dependencies using ```npm install```
-Then using mysql run ```source db/db.sql```
-Then ```source db/schema.sql``` and optionally seed the database with ```source db/seeds.sql```
-Then run ```node index.js ``` and follow the prompts.
+Using git, clone the repository with ```git clone <respository code>```  
+
+Install the npm dependencies using ```npm install```  
+
+Then using mysql run ```source db/db.sql```  
+
+Then ```source db/schema.sql``` and optionally seed the database with ```source db/seeds.sql```  
+
+Then run ```node index.js ``` and follow the prompts.  
+
 When you would like to exit select the EXIT option.
