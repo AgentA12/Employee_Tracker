@@ -20,6 +20,7 @@ const {
   departmentNamesSQL,
   updatedEmployeeRoles,
 } = require("./libs/queryStatements");
+
 const { query } = require("./libs/connection");
 
 function promptUser() {
@@ -69,48 +70,6 @@ function getAction(action) {
       });
     });
   }
-  //UpdateEmployee(action);
-}
-
-function updatedEmployeeRole(roleId, employeeId) {
-  let query = {
-    sql: updatedEmployeeRoles,
-    params: [roleId, employeeId],
-  };
-
-  Query(query).then((results) => {
-    console.table(results);
-    promptUser();
-  });
-}
-
-function getEmployeeID(input) {
-  return new Promise((resolve, reject) => {
-    let query = {
-      sql: selectEmployeeFullName,
-      params: Object.values(input),
-    };
-    QueryReturnResults(query).then((results) => {
-      resolve(results[0].id);
-    });
-  });
-}
-
-function promptUpdateEmployee(roles, employees) {
-  return inquirer.prompt([
-    {
-      type: "list",
-      name: "chooseEmployee",
-      message: "Which employee would you like to update?",
-      choices: employees,
-    },
-    {
-      type: "list",
-      name: "employeeRole",
-      message: "choose the new role",
-      choices: roles,
-    },
-  ]);
 }
 
 function ViewData(params) {
@@ -155,6 +114,47 @@ function AddData(params) {
       });
     });
   }
+}
+
+function updatedEmployeeRole(roleId, employeeId) {
+  let query = {
+    sql: updatedEmployeeRoles,
+    params: [roleId, employeeId],
+  };
+
+  Query(query).then((results) => {
+    console.table(results);
+    promptUser();
+  });
+}
+
+function getEmployeeID(input) {
+  return new Promise((resolve, reject) => {
+    let query = {
+      sql: selectEmployeeFullName,
+      params: Object.values(input),
+    };
+    QueryReturnResults(query).then((results) => {
+      resolve(results[0].id);
+    });
+  });
+}
+
+function promptUpdateEmployee(roles, employees) {
+  return inquirer.prompt([
+    {
+      type: "list",
+      name: "chooseEmployee",
+      message: "Which employee would you like to update?",
+      choices: employees,
+    },
+    {
+      type: "list",
+      name: "employeeRole",
+      message: "choose the new role",
+      choices: roles,
+    },
+  ]);
 }
 
 let getRoleTitles = new Promise((resolve, reject) => {
